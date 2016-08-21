@@ -32,36 +32,43 @@ server.on("connection", function (conn) {
             case "login":
                 loginHandle(msg, conn);
                 break;
-            case "creategroup":
-                createGroup(msg, conn);
-                break;
             case "register":
                 registerUser(msg, conn);
                 break;
-            case "sendmsg":
-                sendMsg (msg, conn);
-                break;
-            case "addtogroup":
-                userToGroup(msg, conn);
-                break;
-            case "removeuser":
-                removeUser(msg, conn);
-                break;
-            case "addposttype":
-                addPostType(msg, conn);
-                break;
-            case "createpost":
-                createPost(msg,conn);
-                break;
-            case "changepost":
-                changePost(msg, conn);
-                break;
-            case "deletepost":
-                deletePost(msg, conn);
-                break;
             default:
-                console.log("invalid msgtype "+msg.msgtype);
-                conn.close();
+                if(!conn.user) {
+                    conn.close();
+                    return;
+                }
+                switch(msg.msgtype) {
+                    case "creategroup":
+                        createGroup(msg, conn);
+                        break;
+                    case "sendmsg":
+                        sendMsg (msg, conn);
+                        break;
+                    case "addtogroup":
+                        userToGroup(msg, conn);
+                        break;
+                    case "removeuser":
+                        removeUser(msg, conn);
+                        break;
+                    case "addposttype":
+                        addPostType(msg, conn);
+                        break;
+                    case "createpost":
+                        createPost(msg,conn);
+                        break;
+                    case "changepost":
+                        changePost(msg, conn);
+                        break;
+                    case "deletepost":
+                        deletePost(msg, conn);
+                        break;
+                    default:
+                        conn.close();
+                        break;
+                }
                 break;
         }
     });
@@ -159,10 +166,6 @@ function registerUser(msg, conn) {
 }
 
 function createGroup(msg, conn) {
-    if(conn.user === null || conn.user === undefined) {
-        conn.close();
-        return;
-    }
     var newGroup = new Group({
         name: msg.name,
     });
@@ -178,10 +181,6 @@ function createGroup(msg, conn) {
     });
 }
 function userToGroup(msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {
@@ -204,10 +203,6 @@ function userToGroup(msg, conn) {
 }
 
 function removeUser (msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {
@@ -226,10 +221,6 @@ function removeUser (msg, conn) {
     });
 }
 function sendMsg(msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
         group.sendMsg(conn.user, msg.msg, function () {
@@ -240,10 +231,6 @@ function sendMsg(msg, conn) {
     });
 }
 function addPostType (msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {
@@ -257,10 +244,6 @@ function addPostType (msg, conn) {
     });
 }
 function createPost(msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {
@@ -274,10 +257,6 @@ function createPost(msg, conn) {
     });
 }
 function changePost(msg, conn) {
-    if(!conn.user) {
-        conn.close();
-        return;
-    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {

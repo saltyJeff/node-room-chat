@@ -1,32 +1,34 @@
+//requires from npm
 var ws = require("nodejs-websocket");
 var crypto = require("crypto");
 var mongoose = require("mongoose");
 var process = require("process");
 var log = require("loglevel");
-var msgtypes = require("./msgtypes.js");
-var out = msgtypes.toClient;
 //schemas
 var userSchema = require("./schemas/user.js");
 var groupSchema = require("./schemas/group.js");
-var port = 8001;
+//the stuff i wrote ;)
+var conf = require("./conf.js");
+var msgtypes = require("./msgtypes.js");
+var out = msgtypes.toClient;
 
+//start script
 var connectedUsers = new Map();
 
 //the server stuff
-var server = ws.createServer();
+var server = ws.createServer(conf.options);
 
-log.setLevel("info");
-server.listen(port);
+log.setLevel(conf.loglevel);
+server.listen(conf.port);
 
 server.on("listening", function () {
-    log.info("server is listening on port "+port);
-    log.info("Ctrl+C to close server or send a SIGINT");
+    log.warn("Ctrl+C to close server or send a SIGINT");
 });
 //giant switch statement OF DEATH
 server.on("connection", function (conn) {
-    console.log("client connected!");
+    log.debug("client connected!");
     conn.on("text", function (str) {
-        console.log(str);
+        log.debug(str);
         var msg = JSON.parse(str);
         switch (msg.msgtype) {
             case "login":
@@ -75,11 +77,11 @@ server.on("connection", function (conn) {
 
     conn.on("close", function (code, reason) {
         connectedUsers.delete(conn.user);
-        console.log("Client leaving code "+code);
+        log.debug("Client leaving code "+code);
     });
 
     conn.on("error", function (err) {
-        console.log("connection error (probably just the client closing the tab) code :"+err);
+        log.debug("connection error (probably just the client closing the tab) code :"+err);
     });
 });
 //the database stuff
@@ -92,7 +94,7 @@ var groupSchema;
 var User;
 var Group;
 db.once('open', function() {
-    console.log("connected to db");
+    log.warn("connected to db");
     User = mongoose.model("User", userSchema);
     Group = mongoose.model("Group", groupSchema);  
 });
@@ -124,7 +126,7 @@ function loginHandle(msg, conn) {
             conn.sendText(JSON.stringify(new out.loggedInMsg(user.getPublicData())));
             conn.user = user.username;
             connectedUsers.set(user.username, conn);
-            console.log("added "+conn.user+ " to connectedUsers");
+            log.info("added "+conn.user+ " to connectedUsers");
             user.groups.forEach(function (groupId) {
                 var id = mongoose.Types.ObjectId(groupId);
                 Group.findOne({_id: id}, function (err, group) {
@@ -153,7 +155,7 @@ function registerUser(msg, conn) {
                 salt: salt,
             });
             newUser.save(function (err, newOne) {
-                console.log("Registered user "+newOne.username);
+                log.info("Registered user "+newOne.username);
                 conn.user = newOne.username;
                 connectedUsers.set(newOne.username, conn);
                 conn.sendText(JSON.stringify(new out.loggedInMsg(newOne.getPublicData())));
@@ -270,13 +272,13 @@ function changePost(msg, conn) {
     });
 }
 process.on("SIGINT", function () {
-    console.log("closing database");
+    log.debug("closing database");
     db.close();
-    console.log("closing websocket connections");
+    log.debug("closing websocket connections");
     server.connections.forEach(function (conn) {
 		conn.close();
 	});
     server.close();
-    console.log("Server shutdown");
+    log.warn("Server shutdown");
     process.exit();
 });

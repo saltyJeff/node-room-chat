@@ -1,4 +1,5 @@
 var mongoose = require("mongoose");
+var conf = require("./conf.js");
 //defines message schema
 var msgSchema = mongoose.Schema({
     "sender": String, //who sent the message
@@ -70,20 +71,12 @@ groupSchema.methods.sendMsg = function (username, msg, cmplt, fail) {
         "time": Date.now()
     };
     theGroup.messages.push(newMsgObj);
-    while(theGroup.messages.length > 10) { //set max msg back
+    while(theGroup.messages.length > conf.msghistory) { //set max msg back
         theGroup.messages.shift();
     }
     theGroup.save(function () {
         cmplt();
     });
-    //MIGRATE TO NRC.JS
-    /*
-    thegroup.users.forEach(function(theUser) {
-        if(connectedUsers.has(theUser)) {
-        connectedUsers.get(theUser).sendText(JSON.stringify(new out.newMsgMsg(thegroup._id.toString(), thegroup.messages[thegroup.messages.length - 1])));
-        }
-    });
-    */
 };
 groupSchema.methods.addPostType = function (username, url, cmplt, fail) {
     console.log("adding post type");
@@ -113,6 +106,9 @@ groupSchema.methods.createPost = function (username, type, cmplt, fail) {
         "time": Date.now()
     });
     this.posts.push(newpost);
+    while(this.posts.length > conf.posthistory) { //set max post back
+        this.posts.shift();
+    }
     this.save(function () {
         cmplt(newpost._id);
     });

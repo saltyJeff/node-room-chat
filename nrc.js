@@ -28,7 +28,7 @@ server.on("listening", function () {
 server.on("connection", function (conn) {
     log.debug("client connected!");
     conn.on("text", function (str) {
-        log.debug(str);
+        log.trace(str);
         var msg = JSON.parse(str);
         switch (msg.msgtype) {
             case "login":
@@ -177,6 +177,7 @@ function createGroup(msg, conn) {
         }
         newGroup.addUser(user, function () {
             conn.sendText(JSON.stringify(new out.inGroupMsg(newGroup)));
+            log.info("group created: "+newGroup.name);
         }, function (err, desc) {
                 conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
         });
@@ -193,6 +194,7 @@ function userToGroup(msg, conn) {
                 return;
             }
             group.addUser(user, function () {
+                log.debug("user "+conn.newuser+" added to group "+group.name);
                 broadcast(group, new out.userAdded(user.username,group._id.toString()),user.username);
                     if(connectedUsers.has(user.username)) {
                         connectedUsers.get(user.username).sendText(JSON.stringify(new out.inGroupMsg(group)));
@@ -215,6 +217,7 @@ function removeUser (msg, conn) {
                 return;
             }
             group.removeUser(user, function () {
+                log.debug("user "+conn.olduser+" removed from group "+group.name);
                 broadcast(group, new out.userRemoved(user.username,group._id.toString()));
                 }, function (err, desc) {
                     conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
@@ -226,6 +229,7 @@ function sendMsg(msg, conn) {
     var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
         group.sendMsg(conn.user, msg.msg, function () {
+            log.trace("message sent from "+conn.user+" :"+msg.mgs);
             broadcast(group, new out.newMsgMsg(group._id.toString(), group.messages[group.messages.length - 1]));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
@@ -239,6 +243,7 @@ function addPostType (msg, conn) {
             return;
         }
         group.addPostType(conn.user,msg.url,function () {
+            log.debug("posttype added group: "+group.name+" url: "+msg.url);
             broadcast(group, new out.addPostTypeMsg(this._id.toString()));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new errMsg(err, desc)));
@@ -246,12 +251,13 @@ function addPostType (msg, conn) {
     });
 }
 function createPost(msg, conn) {
-    var id = mongoose.Types.ObjectId(msg.groupid); 
+    var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {
             return;
         }
         group.createPost(conn.user, msg.posttype, function (newid) {
+            log.debug("post created. group: "+group.name);
             broadcast(group, new out.createPostMsg(msg.groupid, newid, msg.posttype));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new errMsg(err, desc)));
@@ -265,6 +271,7 @@ function changePost(msg, conn) {
             return;
         }
         group.changePost(conn.user, msg.postid, msg.newdata, function () {
+            log.debug("post changed. group: "+group.name);
             broadcast(group, new out.changePostMsg(msg.groupid, msg.postid, msg.newdata));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new errMsg(err, desc)));

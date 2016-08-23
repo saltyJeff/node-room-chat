@@ -1,5 +1,5 @@
 var mongoose = require("mongoose");
-var conf = require("./conf.js");
+var conf = require("../conf.js");
 //defines message schema
 var msgSchema = mongoose.Schema({
     "sender": String, //who sent the message

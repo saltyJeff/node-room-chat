@@ -1,6 +1,6 @@
 {
   "name": "node-room-chat",
-  "version": "1.0.0",
+  "version": "0.1.0",
   "description": "NRC Server",
   "main": "nrc.js",
   "dependencies": {

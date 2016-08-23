@@ -6,7 +6,7 @@ module.exports.toClient = {
     },
     loggedInMsg: function (userData) {
         this.msgtype = "loggedin";
-        this.userData = userData;
+        this.userdata = userData;
     },
     inGroupMsg: function (groupData) {
         this.msgtype = "ingroup";

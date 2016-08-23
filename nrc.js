@@ -22,6 +22,7 @@ log.setLevel(conf.loglevel);
 server.listen(conf.port);
 
 server.on("listening", function () {
+    log.warn("Server listening on port "+conf.port);
     log.warn("Ctrl+C to close server or send a SIGINT");
 });
 //giant switch statement OF DEATH

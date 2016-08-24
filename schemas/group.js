@@ -24,7 +24,9 @@ var groupSchema = mongoose.Schema({
 });
 groupSchema.methods.addUser = function (user, cmplt, fail) {
     var theGroup = this;
+    console.log("bro");
     if(theGroup.users.indexOf(user.username) != -1) {
+        console.log("yo");
         fail("groupfail", "User is already in group");
         return;
     }

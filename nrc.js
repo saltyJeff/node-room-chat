@@ -29,7 +29,7 @@ server.on("listening", function () {
 server.on("connection", function (conn) {
     log.debug("client connected!");
     conn.on("text", function (str) {
-        log.trace(str);
+        log.debug(str);
         var msg = JSON.parse(str);
         switch (msg.msgtype) {
             case "login":
@@ -170,17 +170,21 @@ function registerUser(msg, conn) {
 
 function createGroup(msg, conn) {
     var newGroup = new Group({
-        name: msg.name,
+        name: msg.name
     });
-    User.findOne({username: msg.username}, function (err, user) {
-        if(!user) {
-            return;
-        }
-        newGroup.addUser(user, function () {
-            conn.sendText(JSON.stringify(new out.inGroupMsg(newGroup)));
-            log.info("group created: "+newGroup.name);
-        }, function (err, desc) {
+    newGroup.save(function (err, group) {
+        User.findOne({username: conn.user}, function (err, user) {
+            log.debug("trying to create group");
+            if(!user) {
+                log.debug("no user found");
+                return;
+            }
+            group.addUser(user, function () {
+                conn.sendText(JSON.stringify(new out.inGroupMsg(group)));
+                log.info("group created: "+group.name);
+            }, function (err, desc) {
                 conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
+            });
         });
     });
 }
@@ -230,7 +234,7 @@ function sendMsg(msg, conn) {
     var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
         group.sendMsg(conn.user, msg.msg, function () {
-            log.trace("message sent from "+conn.user+" :"+msg.mgs);
+            log.debug("message sent from "+conn.user+" :"+msg.mgs);
             broadcast(group, new out.newMsgMsg(group._id.toString(), group.messages[group.messages.length - 1]));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new out.errMsg(err, desc)));

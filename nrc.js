@@ -234,7 +234,7 @@ function sendMsg(msg, conn) {
     var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
         group.sendMsg(conn.user, msg.msg, function () {
-            log.debug("message sent from "+conn.user+" :"+msg.mgs);
+            log.debug("message sent from "+conn.user+" :"+msg.msg.data);
             broadcast(group, new out.newMsgMsg(group._id.toString(), group.messages[group.messages.length - 1]));
         }, function (err, desc) {
             conn.sendText(JSON.stringify(new out.errMsg(err, desc)));

@@ -4,6 +4,7 @@
   "description": "NRC Server",
   "main": "nrc.js",
   "dependencies": {
+    "loglevel": "^1.4.1",
     "mongodb": "^2.1.18",
     "mongoose": "^4.5.2",
     "nodejs-websocket": "^1.6.0"

@@ -1,3 +1,4 @@
+var process = require("process");
 module.exports = {
     port: 8001, //port to listen on
     db: "mongodb://localhost:27017/test", //server url for the mongod database

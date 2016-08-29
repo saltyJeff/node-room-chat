@@ -1,6 +1,6 @@
 var process = require("process");
 module.exports = {
-    port: 8001, //port to listen on
+    port: 8001,
     db: "mongodb://localhost:27017/test",
     password: "abc",
     options: {},

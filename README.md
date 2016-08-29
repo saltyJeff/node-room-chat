@@ -9,5 +9,5 @@ Node based room chat and post system
 ###Instructions
 1. Clone repository and run "npm init"
 2. Start Mongo server with "mongod"
-3. Edit conf.js to configure the server (properties described in file)
+3. Edit conf.js to configure the server
 4. Run "node nrc.js"

@@ -25,12 +25,27 @@ server.on("listening", function () {
     log.warn("Server listening on port "+conf.port);
     log.warn("Ctrl+C to close server or send a SIGINT");
 });
+var autoauth = !conf.password;
 //giant switch statement OF DEATH
 server.on("connection", function (conn) {
     log.debug("client connected!");
+    if(autoauth) {
+        conn.auth = true;
+    }
     conn.on("text", function (str) {
         log.debug(str);
         var msg = JSON.parse(str);
+        if(!conn.auth) {
+            if(msg.msgtype == "serverpass") {
+                if(msg.pass === conf.password) {
+                    conn.auth = true;
+                }
+                else {
+                    conn.close();
+                }
+            }
+            return;
+        }
         switch (msg.msgtype) {
             case "login":
                 loginHandle(msg, conn);

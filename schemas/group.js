@@ -22,46 +22,65 @@ var groupSchema = mongoose.Schema({
     posts: [postSchema], //posts in the group
     postTypes: Array //hrefs to post elements
 });
-groupSchema.methods.addUser = function (user, cmplt, fail) {
+groupSchema.methods.addUser = function (user, cmplt) {
     var theGroup = this;
+    var err = null;
     if(theGroup.users.indexOf(user.username) != -1) {
-        fail("groupfail", "User is already in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User is already in group"
+        };
+        cmplt(err);
         return;
     }
     theGroup.users.push(user.username);
     theGroup.save(function () {
         user.groups.push(theGroup._id.toString());
-        cmplt();
+        cmplt(err);
         user.save();
     });
 };
-groupSchema.methods.removeUser = function (username, cmplt, fail) {
+groupSchema.methods.removeUser = function (username, cmplt) {
     var theGroup = this;
+    var err = null;
     if(theGroup.users.indexOf(username) == -1) {
-        fail("groupfail", "User not in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User not in group"
+        };
+        cmplt(err);
         return;
     }
     theGroup.users.splice(theGroup.users.indexOf(username), 1);
     if(theGroup.users.length < 1) {
         console.log("no users, removed group "+theGroup.name);
         theGroup.remove();
-        cmplt();
+        cmplt(err);
         return;
     }
     theGroup.save(function () {
-        cmplt();
+        cmplt(err);
     });
     console.log(goneUser+" removed from group "+theGroup.name);
 };
-groupSchema.methods.sendMsg = function (username, msg, cmplt, fail) {
+groupSchema.methods.sendMsg = function (username, msg, cmplt) {
     var theGroup = this;
+    var err = null;
     if(theGroup.users.indexOf(username) == -1) {
-        fail("groupfail", "User not in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User not in group"
+        };
+        cmplt(err);
         return;
     }
-    //sanity checks
+    //sanity checks (clients be crazy)
     if(msg.datatype != "text" && msg.datatype != "rtf" && msg.datatype != "image" && msg.datatype != "link" && msg.datatype != "base64") {
-        fail("msgfail", msg.datatype+" is not a valid data type");
+        err = {
+            "type": "msgfail",
+            "reason": msg.datatype+" is not a data type"
+        };
+        cmplt(err);
         return;
     }
     var newMsgObj = {
@@ -75,29 +94,43 @@ groupSchema.methods.sendMsg = function (username, msg, cmplt, fail) {
         theGroup.messages.shift();
     }
     theGroup.save(function () {
-        cmplt();
+        cmplt(err);
     });
 };
 groupSchema.methods.addPostType = function (username, url, cmplt, fail) {
     console.log("adding post type");
+    var err = null;
     if(this.users.indexOf(username) == -1) {
-        fail("groupfail", "User not in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User not in group"
+        };
+        cmplt(err);
         return;
     }
     if(this.postTypes.indexOf(url) != -1) {
-        fail("postfail", "post type already exists");
+        err = {
+            "type": "postfail",
+            "reason": "Post type already in group"
+        };
+        cmplt(err);
         return;
     }
     else {
         this.postTypes.push(url);
         this.save(function () {
-            cmplt();
+            cmplt(err);
         });
     }
 };
-groupSchema.methods.createPost = function (username, type, cmplt, fail) {
+groupSchema.methods.createPost = function (username, type, cmplt) {
+    var err = null;
     if(this.users.indexOf(user.username) == -1) {
-        fail("groupfail", "User not in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User not in group"
+        };
+        cmplt(err);
         return;
     }
     var newpost = this.posts.create({
@@ -110,19 +143,23 @@ groupSchema.methods.createPost = function (username, type, cmplt, fail) {
         this.posts.shift();
     }
     this.save(function () {
-        cmplt(newpost._id);
+        cmplt(err, newpost._id);
     });
 };
 groupSchema.methods.changePost = function (user, postid, newdata, cmplt, fail) {
     var post = this.posts.id(postid);
     if(post.user != user.username) {
-        fail("groupfail", "User not in group");
+        err = {
+            "type": "groupfail",
+            "reason": "User not owner of post"
+        };
+        cmplt(err);
         return;
     }
     post.data = newdata;
     post.save();
     this.save(function () {
-        cmplt();
+        cmplt(err);
     });
 };
 module.exports = groupSchema;

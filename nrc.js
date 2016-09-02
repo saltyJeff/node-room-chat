@@ -37,10 +37,13 @@ server.on("connection", function (conn) {
         var msg = JSON.parse(str);
         if(!conn.auth) {
             if(msg.msgtype == "serverpass") {
+                log.debug("trying to auth");
                 if(msg.pass === conf.password) {
                     conn.auth = true;
+                    log.debug("client authenticated");
                 }
                 else {
+                    log.debug("someone tried to get in");
                     conn.close();
                 }
             }
@@ -55,6 +58,7 @@ server.on("connection", function (conn) {
                 break;
             default:
                 if(!conn.user) {
+                    log.debug("someone tried to do stuff without logging in");
                     conn.close();
                     return;
                 }
@@ -84,6 +88,7 @@ server.on("connection", function (conn) {
                         deletePost(msg, conn);
                         break;
                     default:
+                        log.debug("some unrecognized msgtype was sent");
                         conn.close();
                         break;
                 }
@@ -105,8 +110,6 @@ log.info("trying to connect to db");
 mongoose.connect("mongodb://localhost:27017/test");
 mongoose.Promise = global.Promise; //native promises
 var db = mongoose.connection;
-var userSchema;
-var groupSchema;
 var User;
 var Group;
 db.once('open', function() {
@@ -194,11 +197,13 @@ function createGroup(msg, conn) {
                 log.debug("no user found");
                 return;
             }
-            group.addUser(user, function () {
+            group.addUser(user, function (err) {
+                if(err) {
+                    conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                    return;
+                }
                 conn.sendText(JSON.stringify(new out.inGroupMsg(group)));
                 log.info("group created: "+group.name);
-            }, function (err, desc) {
-                conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
             });
         });
     });
@@ -213,14 +218,16 @@ function userToGroup(msg, conn) {
             if(!user) {
                 return;
             }
-            group.addUser(user, function () {
+            group.addUser(user, function (err) {
+                if(err) {
+                    conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                    return;
+                }
                 log.debug("user "+conn.newuser+" added to group "+group.name);
                 broadcast(group, new out.userAdded(user.username,group._id.toString()),user.username);
-                    if(connectedUsers.has(user.username)) {
-                        connectedUsers.get(user.username).sendText(JSON.stringify(new out.inGroupMsg(group)));
-                    }
-                }, function (err, desc) {
-                    conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
+                if(connectedUsers.has(user.username)) {
+                    connectedUsers.get(user.username).sendText(JSON.stringify(new out.inGroupMsg(group)));
+                }
             });
         });
     });
@@ -236,11 +243,13 @@ function removeUser (msg, conn) {
             if(!user) {
                 return;
             }
-            group.removeUser(user, function () {
+            group.removeUser(user, function (err) {
+                if(err) {
+                    conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                    return;
+                }
                 log.debug("user "+conn.olduser+" removed from group "+group.name);
                 broadcast(group, new out.userRemoved(user.username,group._id.toString()));
-                }, function (err, desc) {
-                    conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
             });
         });
     });
@@ -248,11 +257,13 @@ function removeUser (msg, conn) {
 function sendMsg(msg, conn) {
     var id = mongoose.Types.ObjectId(msg.groupid);
     Group.findOne({_id: id}, function (err, group) {
-        group.sendMsg(conn.user, msg.msg, function () {
+        group.sendMsg(conn.user, msg.msg, function (err) {
+            if(err) {
+                conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                return;
+            }
             log.debug("message sent from "+conn.user+" :"+msg.msg.data);
             broadcast(group, new out.newMsgMsg(group._id.toString(), group.messages[group.messages.length - 1]));
-        }, function (err, desc) {
-            conn.sendText(JSON.stringify(new out.errMsg(err, desc)));
         });
     });
 }
@@ -262,11 +273,13 @@ function addPostType (msg, conn) {
         if(err || !group) {
             return;
         }
-        group.addPostType(conn.user,msg.url,function () {
+        group.addPostType(conn.user,msg.url, function (err) {
+            if(err) {
+                conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                return;
+            }
             log.debug("posttype added group: "+group.name+" url: "+msg.url);
             broadcast(group, new out.addPostTypeMsg(this._id.toString()));
-        }, function (err, desc) {
-            conn.sendText(JSON.stringify(new errMsg(err, desc)));
         });
     });
 }
@@ -276,11 +289,13 @@ function createPost(msg, conn) {
         if(err || !group) {
             return;
         }
-        group.createPost(conn.user, msg.posttype, function (newid) {
+        group.createPost(conn.user, msg.posttype, function (err, newid) {
+            if(err) {
+                conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                return;
+            }
             log.debug("post created. group: "+group.name);
             broadcast(group, new out.createPostMsg(msg.groupid, newid, msg.posttype));
-        }, function (err, desc) {
-            conn.sendText(JSON.stringify(new errMsg(err, desc)));
         });
     });
 }
@@ -290,11 +305,13 @@ function changePost(msg, conn) {
         if(err || !group) {
             return;
         }
-        group.changePost(conn.user, msg.postid, msg.newdata, function () {
+        group.changePost(conn.user, msg.postid, msg.newdata, function (err) {
+            if(err) {
+                conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                return;
+            }
             log.debug("post changed. group: "+group.name);
             broadcast(group, new out.changePostMsg(msg.groupid, msg.postid, msg.newdata));
-        }, function (err, desc) {
-            conn.sendText(JSON.stringify(new errMsg(err, desc)));
         });
     });
 }

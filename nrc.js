@@ -29,26 +29,9 @@ var autoauth = !conf.password;
 //giant switch statement OF DEATH
 server.on("connection", function (conn) {
     log.debug("client connected!");
-    if(autoauth) {
-        conn.auth = true;
-    }
     conn.on("text", function (str) {
         log.debug(str);
         var msg = JSON.parse(str);
-        if(!conn.auth) {
-            if(msg.msgtype == "serverpass") {
-                log.debug("trying to auth");
-                if(msg.pass === conf.password) {
-                    conn.auth = true;
-                    log.debug("client authenticated");
-                }
-                else {
-                    log.debug("someone tried to get in");
-                    conn.close();
-                }
-            }
-            return;
-        }
         switch (msg.msgtype) {
             case "login":
                 loginHandle(msg, conn);
@@ -162,6 +145,13 @@ function loginHandle(msg, conn) {
 }
 
 function registerUser(msg, conn) {
+    if(!autoauth) {
+        if(msg.serverpass !== conf.password) {
+            log.debug("Someone tried to register without server password in");
+            conn.close();
+            return;
+        }
+    }
     User.findOne({username: msg.username}, function (err, user) { 
 	    if(!user) {
             var salt = crypto.randomBytes(8).toString("hex").slice(0,16);

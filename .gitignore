@@ -38,4 +38,4 @@ jspm_packages
 
 #custom stuff
 .vscode
-conf.js
+custom.js

@@ -20,7 +20,7 @@ var groupSchema = mongoose.Schema({
     name: String, //name of the group
     messages: [msgSchema], //messages in the group
     posts: [postSchema], //posts in the group
-    postTypes: Array //hrefs to post elements
+    postTypes: conf("types") //hrefs to post elements
 });
 groupSchema.methods.addUser = function (user, cmplt) {
     var theGroup = this;
@@ -90,7 +90,7 @@ groupSchema.methods.sendMsg = function (username, msg, cmplt) {
         "time": Date.now()
     };
     theGroup.messages.push(newMsgObj);
-    while(theGroup.messages.length > conf.msghistory) { //set max msg back
+    while(theGroup.messages.length > conf("msghistory")) { //set max msg back
         theGroup.messages.shift();
     }
     theGroup.save(function () {
@@ -139,7 +139,7 @@ groupSchema.methods.createPost = function (username, type, cmplt) {
         "time": Date.now()
     });
     this.posts.push(newpost);
-    while(this.posts.length > conf.posthistory) { //set max post back
+    while(this.posts.length > conf("posthistory")) { //set max post back
         this.posts.shift();
     }
     this.save(function () {

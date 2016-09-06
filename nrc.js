@@ -16,16 +16,16 @@ var out = msgtypes.toClient;
 var connectedUsers = new Map();
 
 //the server stuff
-var server = ws.createServer(conf.options);
+var server = ws.createServer(conf("options"));
 
-log.setLevel(conf.loglevel);
-server.listen(conf.port);
+log.setLevel(conf("loglevel");
+server.listen(conf("port"));
 
 server.on("listening", function () {
-    log.warn("Server listening on port "+conf.port);
+    log.warn("Server listening on port "+conf("port"));
     log.warn("Ctrl+C to close server or send a SIGINT");
 });
-var autoauth = !conf.password;
+var autoauth = conf("password") === "";
 //giant switch statement OF DEATH
 server.on("connection", function (conn) {
     log.debug("client connected!");
@@ -90,7 +90,7 @@ server.on("connection", function (conn) {
 });
 //the database stuff
 log.info("trying to connect to db");
-mongoose.connect("mongodb://localhost:27017/test");
+mongoose.connect(conf("db"));
 mongoose.Promise = global.Promise; //native promises
 var db = mongoose.connection;
 var User;
@@ -131,7 +131,7 @@ function loginHandle(msg, conn) {
             log.info("added "+conn.user+ " to connectedUsers");
             user.groups.forEach(function (groupId) {
                 var id = mongoose.Types.ObjectId(groupId);
-                Group.findOne({_id: id}, function (err, group) {
+                Group.findOne({_id: id}).slice("posts",conf("posthistory")).exec(function (err, group) {
                     if(err || !group) {
                         return;
                     }
@@ -146,7 +146,7 @@ function loginHandle(msg, conn) {
 
 function registerUser(msg, conn) {
     if(!autoauth) {
-        if(msg.serverpass !== conf.password) {
+        if(msg.serverpass !== conf("password")) {
             log.debug("Someone tried to register without server password in");
             conn.close();
             return;
@@ -200,7 +200,7 @@ function createGroup(msg, conn) {
 }
 function userToGroup(msg, conn) {
     var id = mongoose.Types.ObjectId(msg.groupid); 
-    Group.findOne({_id: id}, function (err, group) {
+    Group.findOne({_id: id}).slice("posts",conf("posthistory")).exec(function (err, group) {
         if(err || !group) {
             return;
         }
@@ -258,6 +258,10 @@ function sendMsg(msg, conn) {
     });
 }
 function addPostType (msg, conn) {
+    if(!conf("typeadd")) {
+        conn.sendText(JSON.stringify(new errMsg("postfail", "Adding post types has been disabled by the server")));
+        return;
+    }
     var id = mongoose.Types.ObjectId(msg.groupid); 
     Group.findOne({_id: id}, function (err, group) {
         if(err || !group) {

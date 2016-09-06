@@ -18,7 +18,7 @@ var connectedUsers = new Map();
 //the server stuff
 var server = ws.createServer(conf("options"));
 
-log.setLevel(conf("loglevel");
+log.setLevel(conf("loglevel"));
 server.listen(conf("port"));
 
 server.on("listening", function () {

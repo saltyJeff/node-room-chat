@@ -139,9 +139,6 @@ groupSchema.methods.createPost = function (username, type, cmplt) {
         "time": Date.now()
     });
     this.posts.push(newpost);
-    while(this.posts.length > conf("posthistory")) { //set max post back
-        this.posts.shift();
-    }
     this.save(function () {
         cmplt(err, newpost._id);
     });
@@ -157,7 +154,21 @@ groupSchema.methods.changePost = function (user, postid, newdata, cmplt, fail) {
         return;
     }
     post.data = newdata;
-    post.save();
+    this.save(function () {
+        cmplt(err);
+    });
+};
+groupSchema.methods.deletePost = function (user, postid, newdata, cmplt, fail) {
+    var post = this.posts.id(postid);
+    if(post.user != user.username) {
+        err = {
+            "type": "groupfail",
+            "reason": "User not owner of post"
+        };
+        cmplt(err);
+        return;
+    }
+    post.remove();
     this.save(function () {
         cmplt(err);
     });

@@ -309,7 +309,23 @@ function changePost(msg, conn) {
         });
     });
 }
-process.on("SIGINT", function () {
+function deletePost(msg, conn) {
+    var id = mongoose.Types.ObjectId(msg.groupid);
+    Group.findOne({_id: id}, function (err, group) {
+        group.deletePost(conn.user, msg.postid, function (err) {
+            if(err) {
+                conn.sendText(JSON.stringify(new out.errMsg(err.type, err.reason)));
+                return;
+            }
+            log.debug("post deleted. group: "+group.name);
+            broadcast(group, new out.deletePostMsg(msg.groupid, msg.postid));
+        });
+    });
+}
+
+//how to kill server
+function die () {
+    log.warn("request to close recieved");
     log.debug("closing database");
     db.close();
     log.debug("closing websocket connections");
@@ -319,4 +335,10 @@ process.on("SIGINT", function () {
     server.close();
     log.warn("Server shutdown");
     process.exit();
+}
+process.on("SIGINT", function () {
+    die();
+});
+process.on("SIGTERM", function () {
+    die();
 });

@@ -43,5 +43,10 @@ module.exports.toClient = {
         this.groupid = groupid;
         this.postid = postid;
         this.newdata = newdata;
+    },
+    deletePostMsg: function (groupid, postid) {
+        this.msgtype = "deletepost";
+        this.groupid = groupid;
+        this.postid = postid;
     }
 };
